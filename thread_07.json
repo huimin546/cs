@@ -1,0 +1,52 @@
+{
+  "question": {
+    "tags": [
+      "java",
+      "spring-boot",
+      "hibernate",
+      "spring-data-jpa"
+    ],
+    "owner": {
+      "account_id": 44487348,
+      "reputation": 1,
+      "user_id": 31778501,
+      "user_type": "registered",
+      "profile_image": "https://i.sstatic.net/t5IXH3yf.jpg?s=256",
+      "display_name": "Ayoub",
+      "link": "https://stackoverflow.com/users/31778501/ayoub"
+    },
+    "is_answered": false,
+    "view_count": 24,
+    "closed_date": 1762280191,
+    "answer_count": 0,
+    "score": -4,
+    "last_activity_date": 1762274603,
+    "creation_date": 1762274603,
+    "question_id": 79809170,
+    "link": "https://stackoverflow.com/questions/79809170/what-causes-multiplebagfetchexception-in-hibernate",
+    "closed_reason": "Not suitable for this site",
+    "title": "What causes MultipleBagFetchException in Hibernate?"
+  },
+  "answers": [],
+  "question_comments": [
+    {
+      "owner": {
+        "account_id": 17553626,
+        "reputation": 423,
+        "user_id": 12733532,
+        "user_type": "registered",
+        "profile_image": "https://lh3.googleusercontent.com/-EAww28wDCxk/AAAAAAAAAAI/AAAAAAAAAAA/ACHi3rcgKS9dXdmUh-hOQPlZYZygBUfLwQ/s256-rj/photo.jpg",
+        "display_name": "Max",
+        "link": "https://stackoverflow.com/users/12733532/max"
+      },
+      "edited": false,
+      "score": 1,
+      "creation_date": 1762278624,
+      "post_id": 79809170,
+      "comment_id": 140836301,
+      "content_license": "CC BY-SA 4.0",
+      "body": "Sorry, but we can&#39;t help without code"
+    }
+  ],
+  "answer_comments": {}
+}

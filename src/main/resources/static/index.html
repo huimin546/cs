@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Java StackOverflow Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        .chart-container {
+            height: 400px;
+            width: 100%;
+        }
+
+        /* 图表高度 */
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 卡片阴影 */
+        .navbar {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <div id="app" class="container py-5">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold text-primary" href="#">StackOverflow Java Analysis</a>
+            </div>
+        </nav>
+
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-primary">Dashboard</h1>
+            <p class="lead text-muted">CS209A Final Project</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card p-3">
+                    <h5 class="card-title">🔥 Common Multithreading Pitfalls</h5>
+                    <form class="row g-2 align-items-end" @submit.prevent="loadPitfallData">
+                        <div class="col">
+                            <label class="form-label mb-1 small" for="pitfallTopInput">Top N (1-6)</label>
+                            <input type="number" id="pitfallTopInput" class="form-control form-control-sm" min="1"
+                                max="6" v-model.number="pitfallTop">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">刷新数据</button>
+                        </div>
+                    </form>
+                    <div id="pitfallChart" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card p-3">
+                    <h5 class="card-title">🕸️ Topic Co-occurrence</h5>
+                    <form class="row g-2 align-items-end" @submit.prevent="loadTopicData">
+                        <div class="col">
+                            <label class="form-label mb-1 small" for="cooccurrenceTopInput">Top N (1-50)</label>
+                            <input type="number" id="cooccurrenceTopInput" class="form-control form-control-sm" min="1"
+                                max="50" v-model.number="cooccurrenceTop">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">刷新数据</button>
+                        </div>
+                    </form>
+                    <div id="topicChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card p-3">
+                    <h5 class="card-title">📊 Solvable vs Hard-to-Solve Questions</h5>
+                    <form class="row g-3 align-items-end mb-3" @submit.prevent="loadSolvabilityData">
+                        <div class="col-md-4">
+                            <label class="form-label mb-1 small" for="minAcceptedScoreInput">最低采纳回答得分 (0-100)</label>
+                            <input type="number" id="minAcceptedScoreInput" class="form-control" min="0" max="100"
+                                v-model.number="minAcceptedAnswerScore">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1 small" for="maxFirstAnswerHoursInput">首答时间上限 (1-720
+                                小时)</label>
+                            <input type="number" id="maxFirstAnswerHoursInput" class="form-control" min="1" max="720"
+                                v-model.number="maxFirstAnswerHours">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1 small" for="hardLatencyInput">判定困难阈值 (1-720 小时)</label>
+                            <input type="number" id="hardLatencyInput" class="form-control" min="1" max="720"
+                                v-model.number="hardMinAnswerLatencyHours">
+                        </div>
+                        <div class="col-md-1 d-grid">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">刷新</button>
+                        </div>
+                    </form>
+                    <div id="solvabilityChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card p-3">
+                    <h5 class="card-title">📈 Topic Trends</h5>
+                    <form class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="tagsInput" class="form-label">标签 (tags)</label>
+                            <input type="text" class="form-control" id="tagsInput" placeholder="java,spring-boot">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fromDate" class="form-label">开始日期 (from)</label>
+                            <input type="date" class="form-control" id="fromDate">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="toDate" class="form-label">结束日期 (to)</label>
+                            <input type="date" class="form-control" id="toDate">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="bucketSelect" class="form-label">粒度 (bucket)</label>
+                            <select class="form-select" id="bucketSelect">
+                                <option value="month" selected>月</option>
+                                <option value="year">年</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="metricSelect" class="form-label">指标 (metric)</label>
+                            <select class="form-select" id="metricSelect">
+                                <option value="questions" selected>提问数量</option>
+                                <option value="score">得分</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 align-self-end">
+                            <button type="button" class="btn btn-primary w-100" @click="loadTopicTrendsData">查询</button>
+                        </div>
+                    </form>
+                    <div id="topicTrendsChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+        const { createApp, onMounted, ref } = Vue;
+
+        createApp({
+            setup() {
+                let pitfallChartInstance = null;
+                let topicChartInstance = null;
+                let solvabilityChartInstance = null;
+                let topicTrendsChartInstance = null;
+
+                const pitfallTop = ref(5);
+                const cooccurrenceTop = ref(10);
+                const minAcceptedAnswerScore = ref(2);
+                const maxFirstAnswerHours = ref(48);
+                const hardMinAnswerLatencyHours = ref(72);
+
+                const initCharts = () => {
+                    pitfallChartInstance = echarts.init(document.getElementById('pitfallChart'));
+                    topicChartInstance = echarts.init(document.getElementById('topicChart'));
+                    solvabilityChartInstance = echarts.init(document.getElementById('solvabilityChart'));
+                    topicTrendsChartInstance = echarts.init(document.getElementById('topicTrendsChart'));
+                };
+
+                const toOptionalNumber = (value) => {
+                    if (value === null || value === undefined) {
+                        return undefined;
+                    }
+                    const numeric = Number(value);
+                    return Number.isFinite(numeric) ? numeric : undefined;
+                };
+
+                const handleChartError = (chartInstance, error) => {
+                    if (chartInstance) {
+                        chartInstance.hideLoading();
+                    }
+                    const message = error?.response?.data?.message || '加载失败，请检查参数';
+                    console.error('加载失败:', error);
+                    alert(message);
+                };
+
+                const loadPitfallData = async () => {
+                    try {
+                        pitfallChartInstance.showLoading();
+                        const params = {};
+                        const sanitizedTop = toOptionalNumber(pitfallTop.value);
+                        if (sanitizedTop !== undefined) {
+                            params.top = sanitizedTop;
+                        }
+                        const response = await axios.get('/api/topics/multithreading/pitfalls', { params });
+                        const dataMap = response.data.categories;
+                        const categories = dataMap.map(item => item.category);
+                        const counts = dataMap.map(item => item.count);
+
+                        const option = {
+                            tooltip: { trigger: 'axis' },
+                            xAxis: { type: 'category', data: categories },
+                            yAxis: { type: 'value' },
+                            series: [{
+                                data: counts,
+                                type: 'bar',
+                                itemStyle: { color: '#5470C6' },
+                                showBackground: true
+                            }]
+                        };
+
+                        pitfallChartInstance.hideLoading();
+                        pitfallChartInstance.setOption(option);
+                    } catch (error) {
+                        handleChartError(pitfallChartInstance, error);
+                    }
+                };
+
+                const loadTopicData = async () => {
+                    try {
+                        topicChartInstance.showLoading();
+                        const params = {};
+                        const sanitizedTop = toOptionalNumber(cooccurrenceTop.value);
+                        if (sanitizedTop !== undefined) {
+                            params.top = sanitizedTop;
+                        }
+                        const response = await axios.get('/api/topics/cooccurrence', { params });
+                        const pairs = response.data.pairs;
+                        const categories = pairs.map(pair => `${pair.tagA} & ${pair.tagB}`);
+                        const counts = pairs.map(pair => pair.questionCount);
+
+                        const option = {
+                            tooltip: { trigger: 'axis' },
+                            xAxis: { type: 'category', data: categories },
+                            yAxis: { type: 'value' },
+                            series: [{
+                                data: counts,
+                                type: 'bar',
+                                itemStyle: { color: '#91CC75' },
+                                showBackground: true
+                            }]
+                        };
+
+                        topicChartInstance.hideLoading();
+                        topicChartInstance.setOption(option);
+                    } catch (error) {
+                        handleChartError(topicChartInstance, error);
+                    }
+                };
+
+                const loadSolvabilityData = async () => {
+                    try {
+                        solvabilityChartInstance.showLoading();
+                        const params = {};
+                        const resolvedMinScore = toOptionalNumber(minAcceptedAnswerScore.value);
+                        const resolvedMaxFirst = toOptionalNumber(maxFirstAnswerHours.value);
+                        const resolvedHardLatency = toOptionalNumber(hardMinAnswerLatencyHours.value);
+                        if (resolvedMinScore !== undefined) {
+                            params.minAcceptedAnswerScore = resolvedMinScore;
+                        }
+                        if (resolvedMaxFirst !== undefined) {
+                            params.maxFirstAnswerHours = resolvedMaxFirst;
+                        }
+                        if (resolvedHardLatency !== undefined) {
+                            params.hardMinAnswerLatencyHours = resolvedHardLatency;
+                        }
+                        const response = await axios.get('/api/topics/solvability/compare', { params });
+                        const totals = response.data.totals;
+
+                        const option = {
+                            tooltip: { trigger: 'item' },
+                            series: [{
+                                type: 'pie',
+                                data: [
+                                    { value: totals.solvableCount, name: 'Solvable' },
+                                    { value: totals.hardCount, name: 'Hard-to-Solve' }
+                                ],
+                                itemStyle: {
+                                    color: function (params) {
+                                        return params.name === 'Solvable' ? '#73C0DE' : '#FC8452';
+                                    }
+                                }
+                            }]
+                        };
+
+                        solvabilityChartInstance.hideLoading();
+                        solvabilityChartInstance.setOption(option);
+                    } catch (error) {
+                        handleChartError(solvabilityChartInstance, error);
+                    }
+                };
+
+                const loadTopicTrendsData = async () => {
+                    try {
+                        if (!topicTrendsChartInstance) {
+                            topicTrendsChartInstance = echarts.init(document.getElementById('topicTrendsChart'));
+                        }
+                        topicTrendsChartInstance.clear();
+                        topicTrendsChartInstance.showLoading();
+
+                        const tags = document.getElementById('tagsInput').value || 'java,spring-boot,hibernate,multithreading,lambda,collections';
+                        const from = document.getElementById('fromDate').value || '';
+                        const to = document.getElementById('toDate').value || '';
+                        const bucket = document.getElementById('bucketSelect').value || 'month';
+                        const metric = document.getElementById('metricSelect').value || 'questions';
+
+                        const response = await axios.get(`/api/topics/trends?tags=${tags}&from=${from}&to=${to}&bucket=${bucket}&metric=${metric}`);
+                        const data = response.data;
+
+                        if (!data.series || data.series.length === 0) {
+                            topicTrendsChartInstance.hideLoading();
+                            topicTrendsChartInstance.setOption({
+                                title: { text: '无数据', left: 'center' },
+                                xAxis: {},
+                                yAxis: {},
+                                series: []
+                            });
+                            return;
+                        }
+
+                        const seriesData = data.series.map(item => ({
+                            name: item.tag,
+                            type: 'line',
+                            data: item.points.map(point => [point.bucket, point.value])
+                        }));
+
+                        const option = {
+                            title: { text: 'Topic Trends', left: 'center' },
+                            tooltip: { trigger: 'axis' },
+                            legend: { data: data.series.map(item => item.tag), top: '10%' },
+                            xAxis: { type: 'time', name: '时间' },
+                            yAxis: { type: 'value', name: metric === 'questions' ? '提问数量' : '得分' },
+                            series: seriesData
+                        };
+
+                        topicTrendsChartInstance.hideLoading();
+                        topicTrendsChartInstance.setOption(option);
+                    } catch (error) {
+                        topicTrendsChartInstance.hideLoading();
+                        topicTrendsChartInstance.setOption({
+                            title: { text: '加载失败，请检查网络或参数', left: 'center' },
+                            xAxis: {},
+                            yAxis: {},
+                            series: []
+                        });
+                        console.error("加载失败:", error);
+                    }
+                };
+                onMounted(() => {
+                    initCharts();
+                    loadPitfallData();
+                    loadTopicData();
+                    loadSolvabilityData();
+                    loadTopicTrendsData();
+                });
+
+                return {
+                    loadPitfallData,
+                    loadTopicData,
+                    loadSolvabilityData,
+                    loadTopicTrendsData,
+                    pitfallTop,
+                    cooccurrenceTop,
+                    minAcceptedAnswerScore,
+                    maxFirstAnswerHours,
+                    hardMinAnswerLatencyHours
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+
+</html>
